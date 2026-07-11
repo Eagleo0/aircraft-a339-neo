@@ -6109,7 +6109,7 @@ export class PseudoFWC {
     },
     '0000055': {
       // GND SPLRS ARMED
-      flightPhaseInhib: [9, 10],
+      flightPhaseInhib: [],
       simVarIsActive: this.spoilersArmed,
       whichCodeToReturn: () => [0],
       codesToReturn: ['000005501'],
