@@ -723,22 +723,22 @@ void EngineControl_A339X::updateFuel(double deltaTimeSeconds) {
 
   bool uiFuelTamper = false;
 
-  const double pumpStateLeft          = simData.fuelPumpState[L]->get();
-  const double pumpStateRight         = simData.fuelPumpState[R]->get();
-  const bool   xfrCenterLeftManual    = simData.simVarsDataPtr->data().xfrCenterManual[L] > 1.5;                              // junction 4
-  const bool   xfrCenterRightManual   = simData.simVarsDataPtr->data().xfrCenterManual[R] > 1.5;                              // junction 5
-  const bool   xfrCenterLeftAuto      = simData.simVarsDataPtr->data().xfrValveCenterAuto[L] > 0.0 && !xfrCenterLeftManual;   // valve 11
-  const bool   xfrCenterRightAuto     = simData.simVarsDataPtr->data().xfrValveCenterAuto[R] > 0.0 && !xfrCenterRightManual;  // valve 12
-  const bool   xfrValveCenterLeftOpen = simData.simVarsDataPtr->data().xfrValveCenterOpen[L] > 0.0                            //
-                                      && (xfrCenterLeftAuto || xfrCenterLeftManual);                                          // valve 9
-  const bool xfrValveCenterRightOpen = simData.simVarsDataPtr->data().xfrValveCenterOpen[R] > 0.0                             //
-                                       && (xfrCenterRightAuto || xfrCenterRightManual);                                       // valve 10
-  const double xfrValveOuterLeft1    = simData.simVarsDataPtr->data().xfrValveOuter1[L];                                      // valve 6
-  const double xfrValveOuterRight1   = simData.simVarsDataPtr->data().xfrValveOuter1[R];                                      // valve 7
-  const double xfrValveOuterLeft2    = simData.simVarsDataPtr->data().xfrValveOuter2[L];                                      // valve 4
-  const double xfrValveOuterRight2   = simData.simVarsDataPtr->data().xfrValveOuter2[R];                                      // valve 5
-  const double lineLeftToCenterFlow  = simData.simVarsDataPtr->data().lineToCenterFlow[L];
-  const double lineRightToCenterFlow = simData.simVarsDataPtr->data().lineToCenterFlow[R];
+  const double pumpStateLeft           = simData.fuelPumpState[L]->get();
+  const double pumpStateRight          = simData.fuelPumpState[R]->get();
+  const bool   xfrCenterLeftManual     = simData.simVarsDataPtr->data().xfrCenterManual[L] > 1.5;                              // junction 4
+  const bool   xfrCenterRightManual    = simData.simVarsDataPtr->data().xfrCenterManual[R] > 1.5;                              // junction 5
+  const bool   xfrCenterLeftAuto       = simData.simVarsDataPtr->data().xfrValveCenterAuto[L] > 0.0 && !xfrCenterLeftManual;   // valve 11
+  const bool   xfrCenterRightAuto      = simData.simVarsDataPtr->data().xfrValveCenterAuto[R] > 0.0 && !xfrCenterRightManual;  // valve 12
+  const bool   xfrValveCenterLeftOpen  = simData.simVarsDataPtr->data().xfrValveCenterOpen[L] > 0.0                            //
+                                         && (xfrCenterLeftAuto || xfrCenterLeftManual);                                        // valve 9
+  const bool   xfrValveCenterRightOpen = simData.simVarsDataPtr->data().xfrValveCenterOpen[R] > 0.0                            //
+                                         && (xfrCenterRightAuto || xfrCenterRightManual);                                      // valve 10
+  const double xfrValveOuterLeft1      = simData.simVarsDataPtr->data().xfrValveOuter1[L];                                     // valve 6
+  const double xfrValveOuterRight1     = simData.simVarsDataPtr->data().xfrValveOuter1[R];                                     // valve 7
+  const double xfrValveOuterLeft2      = simData.simVarsDataPtr->data().xfrValveOuter2[L];                                     // valve 4
+  const double xfrValveOuterRight2     = simData.simVarsDataPtr->data().xfrValveOuter2[R];                                     // valve 5
+  const double lineLeftToCenterFlow    = simData.simVarsDataPtr->data().lineToCenterFlow[L];
+  const double lineRightToCenterFlow   = simData.simVarsDataPtr->data().lineToCenterFlow[R];
 
   const double engine1PreFF = simData.enginePreFF[L]->get();
   const double engine2PreFF = simData.enginePreFF[R]->get();
@@ -895,12 +895,13 @@ void EngineControl_A339X::updateFuel(double deltaTimeSeconds) {
     double fuelBurn2            = 0;
     double apuBurn1             = 0;
     double apuBurn2             = 0;
+    double apuFuelConsumption   = 0;
 
     //--------------------------------------------
     // Left Engine and Wing routine
     if (fuelLeftPre > 0) {
       // Cycle Fuel Burn for Engine 1
-      if (aircraftDevelopmentStateVar != 2) {
+      if (aircraftDevelopmentStateVar != 2 && msfsHandlerPtr->getPauseState() == 0) {
         fuelFlowRateChange   = (engine1FF - engine1PreFF) / deltaTimeHours;
         previousFuelFlowRate = engine1PreFF;
         fuelBurn1            = (fuelFlowRateChange * pow(deltaTimeHours, 2) / 2) + (previousFuelFlowRate * deltaTimeHours);  // KG
@@ -918,7 +919,7 @@ void EngineControl_A339X::updateFuel(double deltaTimeSeconds) {
     // Right Engine and Wing routine
     if (fuelRightPre > 0) {
       // Cycle Fuel Burn for Engine 2
-      if (aircraftDevelopmentStateVar != 2) {
+      if (aircraftDevelopmentStateVar != 2 && msfsHandlerPtr->getPauseState() == 0) {
         fuelFlowRateChange   = (engine2FF - engine2PreFF) / deltaTimeHours;
         previousFuelFlowRate = engine2PreFF;
         fuelBurn2            = (fuelFlowRateChange * pow(deltaTimeHours, 2) / 2) + (previousFuelFlowRate * deltaTimeHours);  // KG
@@ -933,11 +934,8 @@ void EngineControl_A339X::updateFuel(double deltaTimeSeconds) {
     }
 
     /// apu fuel consumption for this frame in pounds
-    double apuFuelConsumption = simData.simVarsDataPtr->data().apuFuelConsumption * weightLbsPerGallon * deltaTimeHours;
-
-    // check if APU is actually running instead of just the ASU which doesn't consume fuel
-    if (apuNpercent <= 0.0) {
-      apuFuelConsumption = 0.0;
+    if (aircraftDevelopmentStateVar != 2 && msfsHandlerPtr->getPauseState() == 0 || apuNpercent <= 0.0) {
+      apuFuelConsumption = simData.simVarsDataPtr->data().apuFuelConsumption * weightLbsPerGallon * deltaTimeHours;
     }
 
     apuBurn1 = apuFuelConsumption;
