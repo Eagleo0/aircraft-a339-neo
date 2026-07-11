@@ -29,7 +29,7 @@ import { ApproachType as MSApproachType } from '../../../../../../build-common/s
 import { FacilityCache } from '../../../../../../build-common/src/systems/navdata/client/backends/Msfs/FacilityCache';
 import { NavigationDatabaseService } from '@fmgc/flightplanning/NavigationDatabaseService';
 import { NavigationDatabase, NavigationDatabaseBackend } from '@fmgc/NavigationDatabase';
-import { A320FlightPlanPerformanceData } from '@fmgc/flightplanning/plans/performance/FlightPlanPerformanceData';
+import { A320FlightPlanPerformanceData } from '@fmgc/flightplanning/plans/performance/A320FlightPlanPerformanceData';
 import { FlightPlanIndex } from '@fmgc/flightplanning/FlightPlanManager';
 
 export class FlightPlanAsoboSync {
