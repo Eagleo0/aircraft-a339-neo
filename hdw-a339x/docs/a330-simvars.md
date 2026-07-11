@@ -4170,6 +4170,7 @@ Use the `A339XEcpBusPublisher` and `A339XEcpBusEvents` for these in A339X code.
       | 13  | LH gear shock absorber compressed (Don't treat GND PWR connected as on ground)      |
       | 14  | RH gear shock absorber compressed (Don't treat GND PWR connected as on ground)      |
       | 15  | LH & RH gear downlocked                                                             |
+      | 29  | Control fault                                                                       |
 
 
 - A32NX_LGCIU_{number}_DISCRETE_WORD_3
@@ -4201,6 +4202,7 @@ Use the `A339XEcpBusPublisher` and `A339XEcpBusEvents` for these in A339X code.
       | 22  | LH flap attachment sensor valid     |
       | 25  | RH flap attachment failure detected |
       | 26  | RH flap attachment sensor valid     |
+      | 29  | SYS fault                           |
 
 - A32NX_LGCIU_{number}_{gear}_GEAR_COMPRESSED
     - Indicates if the shock absorber is compressed (not fully extended)
