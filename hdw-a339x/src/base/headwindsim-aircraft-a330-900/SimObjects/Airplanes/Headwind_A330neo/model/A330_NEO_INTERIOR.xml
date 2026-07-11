@@ -1887,8 +1887,8 @@
                         (L:A32NX_ENGINE_N1:1) 10 &gt;
                         (L:A32NX_ENGINE_N1:2) 10 &gt; or
 
-                        (L:A32NX_LEFT_SLATS_POSITION_PERCENT, percent) 0 &gt;
-                        (L:A32NX_RIGHT_SLATS_POSITION_PERCENT, percent) 0 &gt; or
+                        (L:A32NX_LEFT_SLATS_ANGLE, degree) 19 &gt;=
+                        (L:A32NX_RIGHT_SLATS_ANGLE, degree) 19 &gt;= or
 
                         (L:A32NX_LGCIU_1_LEFT_GEAR_DOWNLOCKED, bool) 1 ==
                         (L:A32NX_LGCIU_2_LEFT_GEAR_DOWNLOCKED, bool) 1 == or
