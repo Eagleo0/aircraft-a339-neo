@@ -21,19 +21,7 @@ interface UpperDisplayProps {
   bus: EventBus;
 }
 export class UpperDisplay extends DisplayComponent<UpperDisplayProps> {
-  private usingMetric = Subject.create(false);
-
-  onAfterRender(node: VNode): void {
-    super.onAfterRender(node);
-
-    NXDataStore.getAndSubscribeLegacy(
-      'CONFIG_USING_METRIC_UNIT',
-      (_k, v) => {
-        this.usingMetric.set(v === '1');
-      },
-      '1',
-    );
-  }
+  private usingMetric = NXDataStore.getSetting('CONFIG_USING_METRIC_UNIT');
 
   render(): VNode {
     return (

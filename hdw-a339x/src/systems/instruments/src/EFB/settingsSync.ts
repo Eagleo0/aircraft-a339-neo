@@ -6,6 +6,7 @@ import { A330X_DEFAULT_RADIO_AUTO_CALL_OUTS } from '@shared/AutoCallOuts';
 
 export const a32nxSyncedSettings: SyncedSettingDefinition[] = [
   {
+    type: 'legacy',
     configKey: 'CONFIG_A330X_FWC_RADIO_AUTO_CALL_OUT_PINS',
     localVarName: 'L:A330X_FWC_RADIO_AUTO_CALL_OUT_PINS',
     defaultValue: A330X_DEFAULT_RADIO_AUTO_CALL_OUTS.toString(),
