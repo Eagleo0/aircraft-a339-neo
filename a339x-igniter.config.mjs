@@ -47,6 +47,7 @@ export default new TaskOfTasks("all", [
                     'npm run build-a339x:systems-host',
                     [
                         'build-a339x/src/systems/systems-host',
+                        'build-a339x/src/systems/shared/src',
                         'build-common/src/systems/datalink',
                         'build-a339x/out/headwindsim-aircraft-a330-900/html_ui/Pages/VCockpit/Instruments/A339X/SystemsHost'
                     ]
