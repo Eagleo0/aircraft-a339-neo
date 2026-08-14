@@ -263,7 +263,9 @@ export class PseudoFWC {
 
   /* SDAC */
   private readonly sdac00100Word = Arinc429Register.empty();
+
   private readonly sdac00200Word = Arinc429Register.empty();
+
   private readonly sdac00201Word = Arinc429Register.empty();
   private readonly sdac00210Word = Arinc429Register.empty();
 
@@ -273,8 +275,12 @@ export class PseudoFWC {
 
   private readonly sdac00511Word = Arinc429Register.empty();
 
+  private readonly sdac03701Word = Arinc429Register.empty();
+
   private readonly sdac05001Word = Arinc429Register.empty();
   private readonly sdac05010Word = Arinc429Register.empty();
+
+  private readonly sdac05201Word = Arinc429Register.empty();
 
   /* 21 - AIR CONDITIONING AND PRESSURIZATION */
 
@@ -681,6 +687,20 @@ export class PseudoFWC {
   private readonly gen2PbOffOut = Subject.create(false);
 
   private readonly gen2OffOut = Subject.create(false);
+
+  private readonly genApuInop = Subject.create(false);
+
+  private readonly apuGenFaultMemory = new NXLogicMemoryNode(false);
+
+  private readonly apuGenFaultConfirmNode = new NXLogicConfirmNode(5, true);
+
+  private readonly apuGenFaultResetConfirmNode = new NXLogicConfirmNode(2, true);
+
+  private readonly apuGenFaultWarning = Subject.create(false);
+
+  private readonly apuGenCycleMemoryNode = new NXLogicMemoryNode(false);
+
+  private readonly apuGenPbNotOffPulseNode = new NXLogicPulseNode(true);
 
   private readonly engine1RunningAndNotPhase6 = new NXLogicConfirmNode(60, true);
 
@@ -1855,10 +1875,17 @@ export class PseudoFWC {
     SimVarValueType.Number,
   );
 
+  // TODO: Get from EGIU
+  private readonly apuAvailVar = RegisteredSimVar.createBoolean('L:A32NX_OVHD_APU_START_PB_IS_AVAILABLE');
+
   private readonly engine1MasterAlternatorVar = RegisteredSimVar.createBoolean('A:GENERAL ENG MASTER ALTERNATOR:1');
   private readonly engine2MasterAlternatorVar = RegisteredSimVar.createBoolean('A:GENERAL ENG MASTER ALTERNATOR:2');
   private readonly idg1ConnectedVar = RegisteredSimVar.createBoolean('L:A32NX_ELEC_ENG_GEN_1_IDG_IS_CONNECTED');
   private readonly idg2ConnectedVar = RegisteredSimVar.createBoolean('L:A32NX_ELEC_ENG_GEN_2_IDG_IS_CONNECTED');
+
+  // TODO: Get from EGIU
+  private readonly apuGenFaultVar = RegisteredSimVar.createBoolean('L:A32NX_OVHD_ELEC_APU_GEN_PB_HAS_FAULT');
+  private readonly apuGenSwitchVar = RegisteredSimVar.createBoolean('A:APU GENERATOR SWITCH:1');
 
   private acquireSdac(): void {
     const xpdr1Status = this.xpdr1StatusVar.get();
@@ -1910,6 +1937,10 @@ export class PseudoFWC {
     this.sdac00511Word.setSsm(Arinc429SignStatusMatrix.NormalOperation);
     this.sdac00511Word.setBitValue(22, this.brakeAccuPressVar.get() < 1650);
 
+    this.sdac03701Word.set(0);
+    this.sdac03701Word.setSsm(Arinc429SignStatusMatrix.NormalOperation);
+    this.sdac03701Word.setBitValue(19, this.apuAvailVar.get());
+
     this.sdac05001Word.set(0);
     this.sdac05001Word.setSsm(Arinc429SignStatusMatrix.NormalOperation);
     this.sdac05001Word.setBitValue(13, !this.idg1ConnectedVar.get());
@@ -1918,6 +1949,11 @@ export class PseudoFWC {
     this.sdac05010Word.setSsm(Arinc429SignStatusMatrix.NormalOperation);
     this.sdac05010Word.setBitValue(13, !this.idg2ConnectedVar.get());
     this.sdac05010Word.setBitValue(19, !this.engine2MasterAlternatorVar.get());
+
+    this.sdac05201Word.set(0);
+    this.sdac05201Word.setSsm(Arinc429SignStatusMatrix.NormalOperation);
+    this.sdac05201Word.setBitValue(12, this.apuGenFaultVar.get());
+    this.sdac05201Word.setBitValue(14, !this.apuGenSwitchVar.get());
   }
 
   /**
@@ -3652,6 +3688,23 @@ export class PseudoFWC {
       !this.gen2FaultMemory.read() || this.flightPhase110.get(),
     );
 
+    this.genApuInop.set(this.sdac05201Word.bitValue(12) && this.sdac03701Word.bitValue(19));
+    this.apuGenFaultWarning.set(
+      this.apuGenFaultMemory.write(
+        this.apuGenFaultConfirmNode.write(!this.sdac05201Word.bitValue(14) && this.genApuInop.get(), deltaTime),
+        this.apuGenFaultResetConfirmNode.write(
+          (!this.sdac05201Word.bitValue(14) && !this.sdac05201Word.bitValue(12) && this.sdac03701Word.bitValue(19)) ||
+            this.fwcFlightPhase.get() === 1,
+          deltaTime,
+        ),
+      ),
+    );
+    this.apuGenPbNotOffPulseNode.write(!this.sdac05201Word.bitValue(14), deltaTime);
+    this.apuGenCycleMemoryNode.write(
+      this.apuGenFaultMemory.read() && this.apuGenPbNotOffPulseNode.read(),
+      !this.apuGenFaultMemory.read() || this.flightPhase110.get(),
+    );
+
     // Use fresh genNotOperating values for this cycle
     const gen1OffPart2 = phase6WithOtherGenOff(gen1OffConfirmOrPhase6, gen2OffPart1, gen2NotOperating);
     const gen2OffPart2 = phase6WithOtherGenOff(gen2OffConfirmOrPhase6, gen1OffPart1, gen1NotOperating);
@@ -4640,6 +4693,22 @@ export class PseudoFWC {
         !this.sdac05010Word.bitValue(19) ? 3 : null,
       ],
       codesToReturn: ['240000201', '240000202', '240000203', '240000204'],
+      memoInhibit: () => false,
+      failure: 2,
+      sysPage: EcamSysPage.ELECAC,
+      side: 'LEFT',
+    },
+    2400004: {
+      // APU GEN FAULT
+      flightPhaseInhib: [4, 5, 7, 8],
+      simVarIsActive: this.apuGenFaultWarning,
+      whichCodeToReturn: () => [
+        0,
+        !this.apuGenCycleMemoryNode.read() ? 1 : null,
+        !this.sdac05201Word.bitValue(14) ? 2 : null,
+        !this.sdac05201Word.bitValue(14) ? 3 : null,
+      ],
+      codesToReturn: ['240000401', '240000402', '240000403', '240000404'],
       memoInhibit: () => false,
       failure: 2,
       sysPage: EcamSysPage.ELECAC,
